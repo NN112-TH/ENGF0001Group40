@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<config>
+	<calibrationperiod> 30 </calibrationperiod>
+	<initialvolume> 100 </initialvolume>
+	<maxvolume> 200 </maxvolume>
+	
+	<thermistornoise> 0.060 </thermistornoise>
+	<thermistoroffset> 0.010 </thermistoroffset>
+	<stirrernoiseamp> 0.01 </stirrernoiseamp>
+	<stirrernoisefreq> 0.01 </stirrernoisefreq>
+	<pHsensornoise> 0.02 </pHsensornoise>
+	<acidmotornoise> 0.01 </acidmotornoise>
+	<basemotornoise> 0.01 </basemotornoise>
+	<acidmolarity> 0.1 </acidmolarity>
+	<basemolarity> 0.1 </basemolarity>	
+	<maxpumprate> 1 </maxpumprate>
+	<pHlowvoltagelimit> 0.2 </pHlowvoltagelimit> 
+	<pHhighvoltagelimit> 0.3 </pHhighvoltagelimit>
+
+	<thermometernoise> 0.3 </thermometernoise>
+	<tachometernoise> 5 </tachometernoise>
+	<pHmeternoise> 0.01 </pHmeternoise>
+	<acidvolumenoise> 1 </acidvolumenoise>
+	<basevolumenoise> 1 </basevolumenoise>
+</config>
+
