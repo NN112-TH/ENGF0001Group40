@@ -1,8 +1,6 @@
 /*
  sketch.ino
-
  Stephen Hailes, Oct 2020
-
  This is a template sketch for the testboard simduino
   
  */
@@ -33,6 +31,8 @@ float prevHeatErr = 0;
 int tempCount = 0;
 int tempSum = 0;
 float temp = 0;
+
+float setHeat = 303;
 
 unsigned long printTime = 5000;
 
@@ -145,13 +145,34 @@ void loop()
     float pHeat = 20;
     float iHeat = 0.0;
     float dHeat = 0.0;
+    
+    
+    if(Serial.available()) {
+      char val = Serial.read();
+      if(val == 'q')
+      {
+        setHeat += 0.5;
+      }
+      if(val == 'W')
+      {
+        setHeat -= 0.5;
+      }
+      if(val == 'e')
+      {
+        setHeat = 298;
+      }
+      if(val == 'r')
+      {
+        setHeat = 308;
+      }
+    }
   
-    float setHeat = 298;
+    
   
     heatInput();
     String temp_s = String(temp, 2);
-    Serial.write(temp_s);
-    delay(1000);
+    Serial.println(temp_s);
     float pidHeat = pid(temp, setHeat, &prevHeatTime, &prevHeatErr, pHeat, iHeat, dHeat);
     heatOutput(pidHeat);
+    delay(5);
 }
