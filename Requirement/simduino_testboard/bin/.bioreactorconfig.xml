@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config>
+	<thermistornoise> 0.060 </thermistornoise>
+	<thermistoroffset> 0.010 </thermistoroffset>
+	<thermometernoise> 0.3 </thermometernoise>
+	<tachometernoise> 5 </tachometernoise>
+	<stirrernoiseamp> 0.05 </stirrernoiseamp>
+	<stirrernoisefreq> 0.01 </stirrernoisefreq>
+</config>
+
