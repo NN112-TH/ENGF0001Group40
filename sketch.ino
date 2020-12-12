@@ -44,7 +44,15 @@ int pHCount = 0;
 int pHSum  = 0;
 float pH = 0;
 
+<<<<<<< Updated upstream
 unsigned long printTime = 5000;
+=======
+//set initial condition
+float setHeat = 303;
+float setStir = 800;
+float setpH = 5;
+
+>>>>>>> Stashed changes
 
 // The PCA9685 is connected to the default I2C connections. There is no need
 // to set these explicitly.
@@ -89,6 +97,7 @@ void stirInput()
 
 void stirOutput(float deltaPwm) 
 {
+<<<<<<< Updated upstream
     stirOutCount++;
     if (stirOutCount >= 5000)
     {
@@ -101,6 +110,21 @@ void stirOutput(float deltaPwm)
             stirPwm = newPwm;
         analogWrite(stirrerPin, stirPwm);
         stirOutCount = 0;
+=======
+    if (pwm > 0 && pwm < 255) 
+    {
+        analogWrite(stirrerPin, pwm);
+        prevStirPwm = pwm;
+    }
+    else if (pwm > 255) 
+    {
+        analogWrite(stirrerPin, 255);
+        prevStirPwm = 255;
+    }
+    else 
+    {
+        analogWrite(stirrerPin, prevStirPwm);
+>>>>>>> Stashed changes
     }
 }
 
@@ -136,8 +160,12 @@ void pHInput()
     
     if (pHCount >= 30)
     {
+<<<<<<< Updated upstream
         float p = pHSum / pHCount;
         pH = 0.00007 * pow(p,2) - 0.0212 * 250 + 3.8817;
+=======
+        pH = pHSum / pHCount;
+>>>>>>> Stashed changes
         pHCount = 0;
         pHSum = 0;
     }
@@ -163,6 +191,7 @@ void pHOutput(int on)
         Wire.write(offLow);
         Wire.write(off - offLow);
         Wire.endTransmission();
+<<<<<<< Updated upstream
         
         Wire.beginTransmission(I2CADDR);
         Wire.write(0x06);
@@ -171,6 +200,8 @@ void pHOutput(int on)
         Wire.write(0xFF);
         Wire.write(0xFF);
         Wire.endTransmission();
+=======
+>>>>>>> Stashed changes
     }
     else
     {
@@ -191,6 +222,7 @@ void pHOutput(int on)
         Wire.write(offLow);
         Wire.write(off - offLow);
         Wire.endTransmission();
+<<<<<<< Updated upstream
         
         Wire.beginTransmission(I2CADDR);
         Wire.write(0x0A);
@@ -199,6 +231,8 @@ void pHOutput(int on)
         Wire.write(0xFF);
         Wire.write(0xFF);
         Wire.endTransmission();
+=======
+>>>>>>> Stashed changes
     }
     
 }
@@ -219,6 +253,7 @@ float pid(float input, float setpoint, float* prevTime, float* prevErr, float kP
     return kP * error + kI * cumErr + kD * rateErr;
 }
 
+
 void loop() 
 {
     float pStir = 0.04;
@@ -234,7 +269,69 @@ void loop()
     float pHeat = 100;
     float iHeat = 100;
     float dHeat = 0.0;
+    
+    float pStir = 0.05;
+    float iStir = 0.005;
+    float dStir = 0.7;
+    
+    //processing command
+    
+    if(Serial.available()) {
+      char val = Serial.read();
+      //heat
+      if(val == 'q')
+      {
+        setHeat += 0.5;
+      }
+      if(val == 'W')
+      {
+        setHeat -= 0.5;
+      }
+      if(val == 'e')
+      {
+        setHeat = 298;
+      }
+      if(val == 'r')
+      {
+        setHeat = 308;
+      }
+      //stir
+      if(val == 'z')
+      {
+        setStir += 100;
+      }
+      if(val == 'x')
+      {
+        setStir -= 100;
+      }
+      if(val == 'c')
+      {
+        setStir = 1500;
+      }
+      if(val == 'w')
+      {
+        setStir = 500;
+      }
+      //pH
+      if(val == 'a')
+      {
+        setpH += 0.5;
+      }
+      if(val == 's')
+      {
+        setpH -= 0.5;
+      }
+      if(val == 'd')
+      {
+        setpH = 7;
+      }
+      if(val == 'f')
+      {
+        setpH = 3;
+      }
+    }
   
+<<<<<<< Updated upstream
     float setHeat = 300;
   
     heatInput();
@@ -263,4 +360,27 @@ void loop()
         
         printTime = now + 5000;
     }
+=======
+    
+  
+    heatInput();
+    stirInput();
+    pHInput();
+    
+    float pHs =5.00;
+    //send data to processing
+    String temp_s = String(temp, 2);
+    String rpm_s = String(rpm,0);
+    String pH_s = String(pHs,2);
+    Serial.println(temp_s + "," +pH_s +","+rpm_s+","+"66.0" );
+
+    
+    //wait for full integration
+    float pidHeat = pid(temp, setHeat, &prevHeatTime, &prevHeatErr, pHeat, iHeat, dHeat);
+    heatOutput(pidHeat);
+    float pidStir = pid(rpm, setStir-30, &prevStirTime, &prevStirErr, pStir, iStir, dStir);
+    stirOutput(pidStir);
+    //delay
+    delay(5);
+>>>>>>> Stashed changes
 }
