@@ -27,7 +27,8 @@ float prevRotTime = 0;
 int rpmCount = 0;
 int rpmSum = 0;
 float rpm = 0;
-float prevStirPwm = 0;
+float stirPwm = 0;
+float stirOutCount = 5000;
 
 float prevHeatTime = 0;
 float prevHeatErr = 0;
@@ -42,6 +43,8 @@ float prevPHErr = 0;
 int pHCount = 0;
 int pHSum  = 0;
 float pH = 0;
+
+unsigned long printTime = 5000;
 
 // The PCA9685 is connected to the default I2C connections. There is no need
 // to set these explicitly.
@@ -84,21 +87,20 @@ void stirInput()
     }
 }
 
-void stirOutput(float pwm) 
+void stirOutput(float deltaPwm) 
 {
-    if (pwm > 0 && pwm < 255) 
+    stirOutCount++;
+    if (stirOutCount >= 5000)
     {
-        analogWrite(stirrerPin, pwm);
-        prevStirPwm = pwm;
-    }
-    else if (pwm > 255) 
-    {
-        analogWrite(stirrerPin, 255);
-        prevStirPwm = 255;
-    }
-    else 
-    {
-        analogWrite(stirrerPin, prevStirPwm);
+        float newPwm = stirPwm + deltaPwm;
+        if (newPwm > 255)
+            stirPwm = 255;
+        else if (newPwm < 0)
+            stirPwm = 0;
+        else
+            stirPwm = newPwm;
+        analogWrite(stirrerPin, stirPwm);
+        stirOutCount = 0;
     }
 }
 
@@ -134,7 +136,8 @@ void pHInput()
     
     if (pHCount >= 30)
     {
-        pH = pHSum / pHCount;
+        float p = pHSum / pHCount;
+        pH = 0.00007 * pow(p,2) - 0.0212 * 250 + 3.8817;
         pHCount = 0;
         pHSum = 0;
     }
@@ -160,6 +163,14 @@ void pHOutput(int on)
         Wire.write(offLow);
         Wire.write(off - offLow);
         Wire.endTransmission();
+        
+        Wire.beginTransmission(I2CADDR);
+        Wire.write(0x06);
+        Wire.write(0x00);
+        Wire.write(0x00);
+        Wire.write(0xFF);
+        Wire.write(0xFF);
+        Wire.endTransmission();
     }
     else
     {
@@ -180,6 +191,14 @@ void pHOutput(int on)
         Wire.write(offLow);
         Wire.write(off - offLow);
         Wire.endTransmission();
+        
+        Wire.beginTransmission(I2CADDR);
+        Wire.write(0x0A);
+        Wire.write(0x00);
+        Wire.write(0x00);
+        Wire.write(0xFF);
+        Wire.write(0xFF);
+        Wire.endTransmission();
     }
     
 }
@@ -188,6 +207,8 @@ float pid(float input, float setpoint, float* prevTime, float* prevErr, float kP
 {
     float now = millis();
     float elapsed = now - *prevTime;
+    if (elapsed == 0)
+        elapsed = 0.1;
     *prevTime = now;
 
     float error = setpoint - input;
@@ -200,30 +221,46 @@ float pid(float input, float setpoint, float* prevTime, float* prevErr, float kP
 
 void loop() 
 {
-    /*float pStir = 0.05;
-    float iStir = 0.005;
-    float dStir = 0.7;
+    float pStir = 0.04;
+    float iStir = 0.03;
+    float dStir = 0;
   
-    float setStir = 800;
+    float setStir = 510;
   
     stirInput();
-    Serial.println(rpm);
-    float pidStir = pid(rpm, setStir-30, &prevStirTime, &prevStirErr, pStir, iStir, dStir);
-    stirOutput(pidStir);*/
+    float pidStir = pid(rpm, setStir, &prevStirTime, &prevStirErr, pStir, iStir, dStir);
+    stirOutput(pidStir);
     
-    /*float pHeat = 20;
-    float iHeat = 0.0;
+    float pHeat = 100;
+    float iHeat = 100;
     float dHeat = 0.0;
   
-    float setHeat = 310;
+    float setHeat = 300;
   
     heatInput();
-    Serial.println(temp);
     float pidHeat = pid(temp, setHeat, &prevHeatTime, &prevHeatErr, pHeat, iHeat, dHeat);
-    heatOutput(pidHeat);*/
+    heatOutput(pidHeat);
     
+    float pPH = 2;
+    float iPH = 0;
+    float dPH = 0;
+  
+    float setPH = 6;
+  
     pHInput();
-    Serial.println(pH);
+    float pidPH = pid(pH, setPH-0.75, &prevPHTime, &prevPHErr, pPH, iPH, dPH);
+    pHOutput(pidPH);
     
-    pHOutput(-10);
+    float now = millis();
+    if (now >= printTime)
+    {
+        Serial.print("RPM: ");
+        Serial.println(rpm);
+        Serial.print("Temp: ");
+        Serial.println(temp);
+        Serial.print("pH: ");
+        Serial.println(pH);
+        
+        printTime = now + 5000;
+    }
 }
