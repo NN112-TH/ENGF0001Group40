@@ -1,3 +1,4 @@
+import grafica.*;
 import processing.serial.*;
 
 Serial myPort;
@@ -10,20 +11,22 @@ String Ctrrpm;
 float CtrpH_f = 5;
 String CtrpH;
 int linefeed = 10;
-PShape I_G40; 
-PShape I_pH;
-PShape I_Stirring;
-PShape I_Temp;
-PShape I_Dashboard;
+PShape I_G40, I_pH, I_Stirring, I_Temp, I_Dashboard, I_Download; 
+
 Button tempInc, tempDec, pHInc, pHDec, stirInc, stirDec;
 ButtonM tempMa, tempMi, pHMa, pHMi, stirMa, stirMi;
-String arduino, msg;
- 
+ButtonO downloadRaw;
+String arduino, msg, fileName;
+Table rawTable;
+int id;
+
+GPlot pHGraph, TempGraph, rpmGraph;
+
 //define variable
 color headerl, headerr, bg;
 
 void setup() {
-  size(1440, 720);
+  size(1440, 850);
   smooth();
   //define color
   bg = 0;
@@ -35,8 +38,52 @@ void setup() {
   I_Stirring = loadShape("rotate.svg");
   I_Temp = loadShape("thermometer.svg");
   I_Dashboard = loadShape("network_monitor.svg");
+  I_Download = loadShape("download.svg");
   
-  //button
+  //table to save data as pH, rpm, and Temp for further analysis as csv file.
+  rawTable = new Table();
+  rawTable.addColumn("id");
+  rawTable.addColumn("year");
+  rawTable.addColumn("month");
+  rawTable.addColumn("day");
+  rawTable.addColumn("hour");
+  rawTable.addColumn("min");
+  rawTable.addColumn("second");
+  rawTable.addColumn("millisecond");
+  rawTable.addColumn("Temperature (°C)");
+  rawTable.addColumn("Stirring rate (RPM)");
+  rawTable.addColumn("pH");
+  
+  //graph data
+  pHGraph = new GPlot(this);
+  pHGraph.setPos(38,460);
+  pHGraph.setDim(350,280);
+  pHGraph.setPointColor(color(50));
+  pHGraph.getTitle().setText("pH VS Time");
+  pHGraph.getXAxis().getAxisLabel().setText("Time (ms)");
+  pHGraph.getYAxis().getAxisLabel().setText("pH");
+  pHGraph.setYLim(2,8);
+  pHGraph.setPointSize(2);
+  
+  TempGraph = new GPlot(this);
+  TempGraph.setPos(488,460);
+  TempGraph.setDim(350,280);
+  TempGraph.setPointColor(color(50));
+  TempGraph.getTitle().setText("Temp VS Time");
+  TempGraph.getXAxis().getAxisLabel().setText("Time (ms)");
+  TempGraph.getYAxis().getAxisLabel().setText("Temp (°C)");
+  TempGraph.setYLim(24,36);
+  TempGraph.setPointSize(2);
+  
+  rpmGraph = new GPlot(this);
+  rpmGraph.setPos(938,460);
+  rpmGraph.setDim(350,280);
+  rpmGraph.setPointColor(color(50));
+  rpmGraph.getTitle().setText("Stirring rate VS Time");
+  rpmGraph.getXAxis().getAxisLabel().setText("Time (ms)");
+  rpmGraph.getYAxis().getAxisLabel().setText("Stirring rate (RPM)");
+  rpmGraph.setYLim(450,1550);
+  rpmGraph.setPointSize(2);
   
   //simavr virtual serial
   myPort = new Serial(this, "/tmp/simavr-uart0",9600);
@@ -47,7 +94,8 @@ void draw() {
   //background
   background(255);
   design();
-  String arduino = myPort.readStringUntil('\n');
+  
+    String arduino = myPort.readStringUntil('\n');
     if (arduino != null && arduino != "0") {
     String[] msg = split(arduino, ",");  
     temp = msg[0];
@@ -68,6 +116,51 @@ void draw() {
     fill(51);
     textSize(30);
     text(pH, 726, 280);
+    
+    TableRow newRow = rawTable.addRow();
+    newRow.setInt("id", id);
+    newRow.setInt("id", year());
+    newRow.setInt("month", month());
+    newRow.setInt("day", day());
+    newRow.setInt("hour", hour());
+    newRow.setInt("min", minute());
+    newRow.setInt("second", second());
+    newRow.setInt("millisecond", millis());
+    newRow.setFloat("Temperature (°C)", temp_c);
+    newRow.setFloat("Stirring rate (RPM)", rpm_i);
+    newRow.setFloat("pH", pH_f);
+    
+  id += 1;
+  int times = millis();  
+  pHGraph.addPoint(times, pH_f);
+  pHGraph.beginDraw();
+  pHGraph.drawBackground();
+  pHGraph.drawBox();
+  pHGraph.drawYAxis();
+  pHGraph.drawTitle();
+  pHGraph.drawGridLines(GPlot.BOTH);
+  pHGraph.drawPoints();
+  pHGraph.endDraw();
+  
+  TempGraph.addPoint(times, temp_c);
+  TempGraph.beginDraw();
+  TempGraph.drawBackground();
+  TempGraph.drawBox();
+  TempGraph.drawYAxis();
+  TempGraph.drawTitle();
+  TempGraph.drawGridLines(GPlot.BOTH);
+  TempGraph.drawPoints();
+  TempGraph.endDraw();
+  
+  rpmGraph.addPoint(times, rpm_i);
+  rpmGraph.beginDraw();
+  rpmGraph.drawBackground();
+  rpmGraph.drawBox();
+  rpmGraph.drawYAxis();
+  rpmGraph.drawTitle();
+  rpmGraph.drawGridLines(GPlot.BOTH);
+  rpmGraph.drawPoints();
+  rpmGraph.endDraw();
     }
 }
 
@@ -147,6 +240,11 @@ void mouseClicked() {
       Ctrrpm_f = 500;
       myPort.write('w');
   }
+  if(downloadRaw.Click())
+  {
+      fileName = "y/m/d/h/m = " + str(year()) + "_" + str(month()) + "_" + str(day()) + "_" + str(hour()) + "_" + str(minute())+ ".csv";
+      saveTable(rawTable, fileName);
+  }
 }
 
 //keep overall design of non-technical related of the UI here
@@ -160,6 +258,9 @@ void design() {
   shape(I_G40, 42,10,56,56);
   //body
   shape(I_Dashboard, 48,96,70,70);
+  downloadRaw = new ButtonO("", 1340, 96,70,70);
+  downloadRaw.Draw();
+  shape(I_Download, 1340, 96,70,70);
   fill(51);
   textSize(36);
   text("DASHBOARD", 255,130);
@@ -335,6 +436,41 @@ class ButtonM {
   
   void Draw() {
     fill(248);
+    if (mouseX > x && mouseX < (x + w) && mouseY > y && mouseY < (y + h)) {
+      fill(230);
+    }
+    rect(x, y, w, h, 10);
+    textAlign(CENTER, CENTER);
+    fill(0);
+    text(label, x + (w / 2), y + (h / 2));
+  }
+  
+  boolean Click() {
+    if (mouseX > x && mouseX < (x + w) && mouseY > y && mouseY < (y + h)) {
+      return true;
+    }
+    return false;
+  }
+}
+
+class ButtonO {
+  String label;
+  float x;    // top left corner x position
+  float y;    // top left corner y position
+  float w;    // width of button
+  float h;    // height of button
+  
+  ButtonO(String labelB, float xpos, float ypos, float widthB, float heightB) {
+    label = labelB;
+    x = xpos;
+    y = ypos;
+    w = widthB;
+    h = heightB;
+  }
+  
+  void Draw() {
+    fill(255);
+    stroke(255);
     if (mouseX > x && mouseX < (x + w) && mouseY > y && mouseY < (y + h)) {
       fill(230);
     }
